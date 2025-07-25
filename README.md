@@ -52,6 +52,19 @@ Only for itgmania. Please use the Default branch itgmania:release
 
 And more!
 
+## About This Fork: Enhanced Empty Break Features
+
+This branch adds several new features to help with stamina pacing and planning, specifically by improving the run lookahead functionality:
+
+1. **Highlight Empty Breaks** - Toggle whether empty breaks (sections with no notes) are detected and highlighted differently from regular breaks.
+
+2. **Empty Break Countdown** - Display a counter showing how many measures until the next empty break, helping players prepare for upcoming rest periods.
+
+3. **Empty Break Threshold** - Configure the minimum duration (in measures) for a break to be considered "empty". Breaks shorter than this threshold won't be highlighted as empty, even if they contain no notes.
+
+These settings can be found in the same menu as other measure counter options, allowing each player to customize their experience.
+
+
 # Credits
 
 This fork is worked on by Zarzob and Zankoku.
