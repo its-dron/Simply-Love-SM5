@@ -102,7 +102,7 @@ local Overrides = {
 
 			-- NOTE(teejusb): We could remove "C" as an option in Tournament mode + Enforce No Cmod (like above),
 			-- but consider the following:
-			-- 
+			--
 			-- 1. Player has a CMod set
 			-- 2. Player plays a No CMod song where it auto converts to MMod.
 			--
@@ -266,7 +266,7 @@ local Overrides = {
 			local first = 0
 			local last = 100
 			local step = 1
-			
+
 			return range(first,last,step)
 		end
 	},
@@ -561,7 +561,7 @@ local Overrides = {
 				GIFname = cleanGSub(cleanGSub(GIFs[i], "/" .. GIFdir, ""), ".lua", "")
 				table.insert(choices, GIFname)
 			end
-			
+
 			return choices
 		end,
 	},
@@ -575,7 +575,7 @@ local Overrides = {
 			local first = 0
 			local last = 100
 			local step = 1
-			
+
 			return range(first,last,step)
 		end
 	},
@@ -626,7 +626,7 @@ local Overrides = {
 			return vals
 		end
 	},
-	
+
 	TiltMultiplier = {
 		Choices = function()
 			local first	= 1
@@ -695,7 +695,7 @@ local Overrides = {
 	-------------------------------------------------------------------------
 	MeasureCounterOptions = {
 		SelectType = "SelectMultiple",
-		Values = { "MeasureCounterLeft", "MeasureCounterUp", "MeasureCounterVert", "BrokenRun", "RunTimer"},
+		Values = { "MeasureCounterLeft", "MeasureCounterUp", "MeasureCounterVert", "BrokenRun", "RunTimer", "HighlightEmptyBreaks"},
 	},
 	-------------------------------------------------------------------------
 	LifeBarOptions = {

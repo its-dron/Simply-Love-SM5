@@ -29,7 +29,7 @@ return function(SongNumberInCourse)
 			if (mods.MeasureCounter and mods.MeasureCounter ~= "None") then
 				-- Set the actual stream information for the player based on their selected notes threshold.
 				local notesThreshold = tonumber(mods.MeasureCounter:match("%d+"))
-				SL[pn].Streams.Measures = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, notesThreshold)
+				SL[pn].Streams.Measures = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, notesThreshold, pn)
 			end
 		end
 	end

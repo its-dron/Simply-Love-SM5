@@ -14,7 +14,7 @@
 -- Get the start/end of each stream and break sequence in our table of measures
 -- TODO(teejusb): Make this smarter as we can probably automatically figure
 -- out a good value for notesThreshold from the chart information.
-GetStreamSequences = function(notesPerMeasure, notesThreshold)
+GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 	local streamMeasures = {}
 	for i,n in ipairs(notesPerMeasure) do
 		if n >= notesThreshold then
@@ -90,7 +90,17 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold)
 		end
 	end
 
-	-- Split breaks into sequences of empty and non-empty breaks
+	-- Check if we should split breaks into sequences of empty and non-empty breaks
+	-- If no player number is provided, use the master player
+	pn = pn or (GAMESTATE:GetMasterPlayerNumber() and ToEnumShortString(GAMESTATE:GetMasterPlayerNumber()) or "P1")
+	local highlightEmptyBreaks = SL[pn].ActiveModifiers.HighlightEmptyBreaks
+
+	-- If HighlightEmptyBreaks is disabled, just return the streamSequences as is
+	if not highlightEmptyBreaks then
+		return streamSequences
+	end
+
+	-- Otherwise, split breaks into sequences of empty and non-empty breaks
 	local finalSequences = {}
 	for i, segment in ipairs(streamSequences) do
 		if not segment.isBreak then
@@ -161,10 +171,10 @@ end
 --    80 Total
 GenerateBreakdownText = function(pn, minimization_level)
 	if #SL[pn].Streams.NotesPerMeasure == 0 then return 'Not available!' end
-	
+
 	local segments = {}
 	local multiplier = 2
-	
+
 	local GetDensity = function(segments)
 		local total_stream = 0
 		local total_measures = 0
@@ -175,29 +185,29 @@ GenerateBreakdownText = function(pn, minimization_level)
 		end
 		return (total_stream / total_measures)
 	end
-	
+
 	-- Experimental by Zankoku - See if a reasonable breakdown can be generated from 32nds or 24ths
 	if GetDisplayBPMs(pn)[1] == GetDisplayBPMs(pn)[2] then
-		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 32)
-		
+		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 32, pn)
+
 		if #segments == 0 or GetDensity(segments) < 0.2 then
 			multiplier = 1.5
-			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 24)
+			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 24, pn)
 		end
-		
+
 		if #segments == 0 or GetDensity(segments) < 0.2 then
 			multiplier = 1.25
-			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 20)
+			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 20, pn)
 		end
 	end
-	
+
 	if #segments == 0 or GetDensity(segments) < 0.2 then
 		multiplier = 1
-		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16)
+		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16, pn)
 	end
 
 	-- Assume 16ths for the breakdown text
-	-- segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16)
+	-- segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16, pn)
 	local text_segments = {}
 
 	-- The following is used for level 2 and 3 minimization levels.
@@ -294,16 +304,16 @@ GenerateBreakdownText = function(pn, minimization_level)
 			total_sum = total_sum + segment_sum
 		end
 	end
-	
+
 	local displaybpm = GetDisplayBPMs(pn)[1]
 	local realBpms = GAMESTATE:GetCurrentSong():GetTimingData():GetActualBPM()
-	
+
 	if realBpms then
 		if displaybpm * multiplier > realBpms[1] * multiplier and displaybpm * multiplier > realBpms[2] * multiplier then
 			displaybpm = realBpms[2]
 		end
 	end
-	
+
 	local calcbpm = (displaybpm * multiplier - math.floor(displaybpm * multiplier)) < 0.5 and math.floor(displaybpm * multiplier) or math.ceil(displaybpm * multiplier)
 	local endbpm = (multiplier == 1 and "") or " @ " .. calcbpm
 
@@ -324,7 +334,7 @@ GetTotalStreamAndBreakMeasures = function(pn, fullMeasures)
 	local lastSegmentWasStream = false
 	local segments = {}
 	local addition = fullMeasures and 2 or 0
-	
+
 	local GetDensity = function(segments)
 		local total_stream = 0
 		local total_measures = 0
@@ -336,26 +346,26 @@ GetTotalStreamAndBreakMeasures = function(pn, fullMeasures)
 		return (total_stream / total_measures)
 	end
 
-	
+
 	if GetDisplayBPMs(pn)[1] == GetDisplayBPMs(pn)[2] then
-		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 30+addition)
-		
+		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 30+addition, pn)
+
 		if #segments == 0 or GetDensity(segments) < 0.2 then
 			multiplier = 1.5
-			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 22+addition)
+			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 22+addition, pn)
 		end
-		
+
 		if #segments == 0 or GetDensity(segments) < 0.2 then
 			multiplier = 1.25
-			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 18+addition)
+			segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 18+addition, pn)
 		end
 	end
-	
+
 	if #segments == 0 or GetDensity(segments) < 0.2 then
 		multiplier = 1
-		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 14+addition)
+		segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 14+addition, pn)
 	end
-	
+
 	for i, segment in ipairs(segments) do
 		local segment_size = segment.streamEnd - segment.streamStart
 		if segment.isBreak and i < #segments and i ~= 1 then
@@ -372,11 +382,11 @@ GetTotalStreamAndBreakMeasures = function(pn, fullMeasures)
 			lastSegmentWasStream = true
 		end
 	end
-	
+
 	if totalStream + totalBreak < 10 or totalStream + totalBreak < edgeBreak then
 		totalBreak = totalBreak + edgeBreak
 	end
-	
+
 	totalStream = totalStream * multiplier
 	totalBreak = totalBreak * multiplier
 
