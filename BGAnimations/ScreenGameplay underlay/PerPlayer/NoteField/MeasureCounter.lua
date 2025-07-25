@@ -286,8 +286,8 @@ af[#af+1] = LoadFont(font)..{
 		-- Store the reference to the counter
 		emptyBreakCounter = self
 
-		-- Only show the counter if the ShowEmptyBreakReminder option is enabled
-		if not mods.ShowEmptyBreakReminder then
+		-- Only show the counter if the ShowEmptyBreakCountdown option is enabled
+		if not mods.ShowEmptyBreakCountdown then
 			self:visible(false)
 			return
 		end
