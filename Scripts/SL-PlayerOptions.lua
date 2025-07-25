@@ -695,7 +695,7 @@ local Overrides = {
 	-------------------------------------------------------------------------
 	MeasureCounterOptions = {
 		SelectType = "SelectMultiple",
-		Values = { "MeasureCounterLeft", "MeasureCounterUp", "MeasureCounterVert", "BrokenRun", "RunTimer", "HighlightEmptyBreaks"},
+		Values = { "MeasureCounterLeft", "MeasureCounterUp", "MeasureCounterVert", "BrokenRun", "RunTimer", "HighlightEmptyBreaks", "ShowEmptyBreakReminder"},
 	},
 	-------------------------------------------------------------------------
 	LifeBarOptions = {
