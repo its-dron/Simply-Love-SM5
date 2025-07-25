@@ -52,6 +52,8 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 		local breakEnd = curVal - 1
 		if (breakEnd - breakStart >= breakSequenceThreshold) then
 			local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
+			-- Only mark as empty if the break is long enough
+			isEmpty = isEmpty and (breakEnd - breakStart >= emptyBreakThreshold)
 			table.insert(streamSequences,
 				{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
 		end
@@ -82,6 +84,8 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 			local breakEnd = (nextVal ~= -1) and nextVal - 1 or #notesPerMeasure
 			if (breakEnd - breakStart >= breakSequenceThreshold) then
 				local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
+				-- Only mark as empty if the break is long enough
+				isEmpty = isEmpty and (breakEnd - breakStart >= emptyBreakThreshold)
 				table.insert(streamSequences,
 					{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
 			end
@@ -94,6 +98,7 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 	-- If no player number is provided, use the master player
 	pn = pn or (GAMESTATE:GetMasterPlayerNumber() and ToEnumShortString(GAMESTATE:GetMasterPlayerNumber()) or "P1")
 	local highlightEmptyBreaks = SL[pn].ActiveModifiers.HighlightEmptyBreaks
+	local emptyBreakThreshold = SL[pn].ActiveModifiers.EmptyBreakThreshold or 1
 
 	-- If HighlightEmptyBreaks is disabled, just return the streamSequences as is
 	if not highlightEmptyBreaks then
@@ -117,11 +122,13 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 				-- If we've found a transition between empty and non-empty, split the segment
 				if measureIsEmpty ~= currentIsEmpty then
 					-- Add the completed segment
+					local segmentSize = m - 1 - currentStart
+					local isEmptySegment = currentIsEmpty and (segmentSize >= emptyBreakThreshold)
 					table.insert(finalSequences, {
 						streamStart = currentStart,
 						streamEnd = m - 1,
 						isBreak = true,
-						isEmpty = currentIsEmpty
+						isEmpty = isEmptySegment
 					})
 
 					-- Start a new segment
@@ -131,11 +138,13 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 			end
 
 			-- Add the final segment
+			local segmentSize = segment.streamEnd - currentStart
+			local isEmptySegment = currentIsEmpty and (segmentSize >= emptyBreakThreshold)
 			table.insert(finalSequences, {
 				streamStart = currentStart,
 				streamEnd = segment.streamEnd,
 				isBreak = true,
-				isEmpty = currentIsEmpty
+				isEmpty = isEmptySegment
 			})
 		end
 	end

@@ -30,6 +30,7 @@ local PlayerDefaults = {
 				HideLookahead = false,
 				HighlightEmptyBreaks = true,
 				ShowEmptyBreakReminder = false,
+				EmptyBreakThreshold = 2,
 				MeasureLines = "Off",
 				DataVisualizations = "None",
 				TargetScore = 11,

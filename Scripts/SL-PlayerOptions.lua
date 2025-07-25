@@ -608,6 +608,30 @@ local Overrides = {
 		SelectType = "SelectMultiple",
 		Values = { "MeasureCounterLeft", "MeasureCounterUp", "HideLookahead", "HighlightEmptyBreaks", "ShowEmptyBreakReminder" },
 	},
+	EmptyBreakThreshold = {
+		Choices = { "1", "2", "4", "8", "12", "16" },
+		Values = { 1, 2, 4, 8, 12, 16 },
+		LoadSelections = function(self, list, pn)
+			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local threshold = mods.EmptyBreakThreshold or 1
+			for i, val in ipairs(self.Values) do
+				if val == threshold then
+					list[i] = true
+					break
+				end
+			end
+			return list
+		end,
+		SaveSelections = function(self, list, pn)
+			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			for i, val in ipairs(self.Values) do
+				if list[i] then
+					mods.EmptyBreakThreshold = val
+					break
+				end
+			end
+		end
+	},
 	-------------------------------------------------------------------------
 	MeasureLines = {
 		Values = { "Off", "Measure", "Quarter", "Eighth" },
