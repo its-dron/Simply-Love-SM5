@@ -29,6 +29,7 @@ local PlayerDefaults = {
 				MeasureCounterUp = false,
 				HideLookahead = false,
 				HighlightEmptyBreaks = true,
+				ShowEmptyBreakReminder = false,
 				MeasureLines = "Off",
 				DataVisualizations = "None",
 				TargetScore = 11,

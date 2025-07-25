@@ -606,7 +606,7 @@ local Overrides = {
 	-------------------------------------------------------------------------
 	MeasureCounterOptions = {
 		SelectType = "SelectMultiple",
-		Values = { "MeasureCounterLeft", "MeasureCounterUp", "HideLookahead", "HighlightEmptyBreaks" },
+		Values = { "MeasureCounterLeft", "MeasureCounterUp", "HideLookahead", "HighlightEmptyBreaks", "ShowEmptyBreakReminder" },
 	},
 	-------------------------------------------------------------------------
 	MeasureLines = {

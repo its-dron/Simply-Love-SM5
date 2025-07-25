@@ -21,6 +21,43 @@ local lookAhead = mods.HideLookahead and 0 or 3
 -- If you want to see more than 2 counts in advance, change the 2 to a larger value.
 -- Making the value very large will likely impact fps. -quietly
 
+-- Add a BitmapText actor for the "measures until empty break" counter
+local emptyBreakCounter = nil
+
+-- Function to find the next empty break and return the number of measures until it
+local GetMeasuresUntilNextEmptyBreak = function(currMeasure, Measures, currentStreamIndex)
+    -- Start from the current stream index
+    local idx = currentStreamIndex
+    local measuresUntilEmptyBreak = 0
+
+    -- If we're currently in an empty break, return 0
+    if Measures[idx] and Measures[idx].isBreak and Measures[idx].isEmpty then
+        return 0
+    end
+
+    -- Calculate how many measures remain in the current segment
+    if Measures[idx] then
+        local segmentEnd = Measures[idx].streamEnd
+        measuresUntilEmptyBreak = segmentEnd - currMeasure
+    end
+
+    -- Look ahead through future segments until we find an empty break
+    idx = idx + 1
+    while idx <= #Measures do
+        if Measures[idx].isBreak and Measures[idx].isEmpty then
+            -- Found an empty break
+            return math.ceil(measuresUntilEmptyBreak)
+        else
+            -- Add the length of this segment to our counter
+            measuresUntilEmptyBreak = measuresUntilEmptyBreak + (Measures[idx].streamEnd - Measures[idx].streamStart)
+        end
+        idx = idx + 1
+    end
+
+    -- If we get here, there are no more empty breaks in the song
+    return -1
+end
+
 
 -- We'll want to reset each of these values for each new song in the case of CourseMode
 local InitializeMeasureCounter = function()
@@ -115,6 +152,19 @@ local Update = function(self, delta)
 		-- If we've reached the end of the stream, we want to get values for the next stream.
 		if IsEndOfStream(currMeasure, streams.Measures, streamIndex) then
 			streamIndex = streamIndex + 1
+		end
+
+		-- Update the "measures until empty break" counter if it exists
+		if emptyBreakCounter then
+			local measuresUntilEmptyBreak = GetMeasuresUntilNextEmptyBreak(currMeasure, streams.Measures, streamIndex)
+			if measuresUntilEmptyBreak > 0 then
+				-- Only show the counter if we're not currently in an empty break
+				emptyBreakCounter:settext(measuresUntilEmptyBreak)
+				emptyBreakCounter:diffuse(1, 1, 0, 1) -- Yellow color
+			else
+				-- If we're in an empty break or there are no more empty breaks, hide the counter
+				emptyBreakCounter:settext("")
+			end
 		end
 
 		for i=1,lookAhead+1 do
@@ -213,5 +263,37 @@ for i=lookAhead+1,1,-1 do
 		end
 	}
 end
+
+-- Add the "measures until empty break" counter
+af[#af+1] = LoadFont(font)..{
+	InitCommand=function(self)
+		-- Store the reference to the counter
+		emptyBreakCounter = self
+
+		-- Only show the counter if the ShowEmptyBreakReminder option is enabled
+		if not mods.ShowEmptyBreakReminder then
+			self:visible(false)
+			return
+		end
+
+		local width = GetNotefieldWidth()
+		local NumColumns = GAMESTATE:GetCurrentStyle():ColumnsPerPlayer()
+		local columnWidth = width/NumColumns
+
+		-- Position it below the measure counter
+		self:zoom(0.3):shadowlength(1):horizalign(center)
+		self:y(20) -- Position it below the main counter
+
+		-- If the measure counter is on the left, position this counter on the left too
+		if mods.MeasureCounterLeft then
+			self:x(-columnWidth)
+		else
+			self:x(0)
+		end
+
+		-- Initialize with empty text
+		self:settext("")
+	end
+}
 
 return af
