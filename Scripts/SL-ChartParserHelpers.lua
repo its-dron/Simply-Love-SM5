@@ -2,7 +2,7 @@
 -- This file (SL-ChartParserHelpers.lua) is used to populate auxilliary
 -- data which is oftem based off the data parsed form ChartParseInfo.
 
--- The main use case is when this auxilliary information might depend on 
+-- The main use case is when this auxilliary information might depend on
 -- extra information that isn't available during the Chart Parsing stage.
 
 -- For example, getting the information for the measure counter depends on
@@ -33,14 +33,27 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold)
 	local counter = 1
 	local streamEnd = nil
 
+	-- Helper function to check if a break is empty (no notes at all)
+	local IsBreakEmpty = function(start, endMeasure)
+		for i = start, endMeasure do
+			-- If any measure in this break has notes, it's not empty
+			if notesPerMeasure[i] and notesPerMeasure[i] > 0 then
+				return false
+			end
+		end
+		-- If we get here, all measures had 0 notes
+		return true
+	end
+
 	-- First add an initial break if it's larger than breakSequenceThreshold
 	if #streamMeasures > 0 then
 		local breakStart = 0
 		local k, curVal = next(streamMeasures) -- first element of a table
 		local breakEnd = curVal - 1
 		if (breakEnd - breakStart >= breakSequenceThreshold) then
+			local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
 			table.insert(streamSequences,
-				{streamStart=breakStart, streamEnd=breakEnd, isBreak=true})
+				{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
 		end
 	end
 
@@ -68,15 +81,56 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold)
 			local breakStart = curVal
 			local breakEnd = (nextVal ~= -1) and nextVal - 1 or #notesPerMeasure
 			if (breakEnd - breakStart >= breakSequenceThreshold) then
+				local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
 				table.insert(streamSequences,
-					{streamStart=breakStart, streamEnd=breakEnd, isBreak=true})
+					{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
 			end
 			counter = 1
 			streamEnd = nil
 		end
 	end
 
-	return streamSequences
+	-- Split breaks into sequences of empty and non-empty breaks
+	local finalSequences = {}
+	for i, segment in ipairs(streamSequences) do
+		if not segment.isBreak then
+			-- Stream segments remain unchanged
+			table.insert(finalSequences, segment)
+		else
+			-- For break segments, we need to check each measure and split if needed
+			local currentStart = segment.streamStart
+			local currentIsEmpty = IsBreakEmpty(currentStart + 1, currentStart + 1)
+
+			for m = segment.streamStart + 1, segment.streamEnd do
+				local measureIsEmpty = IsBreakEmpty(m, m)
+
+				-- If we've found a transition between empty and non-empty, split the segment
+				if measureIsEmpty ~= currentIsEmpty then
+					-- Add the completed segment
+					table.insert(finalSequences, {
+						streamStart = currentStart,
+						streamEnd = m - 1,
+						isBreak = true,
+						isEmpty = currentIsEmpty
+					})
+
+					-- Start a new segment
+					currentStart = m - 1
+					currentIsEmpty = measureIsEmpty
+				end
+			end
+
+			-- Add the final segment
+			table.insert(finalSequences, {
+				streamStart = currentStart,
+				streamEnd = segment.streamEnd,
+				isBreak = true,
+				isEmpty = currentIsEmpty
+			})
+		end
+	end
+
+	return finalSequences
 end
 
 -- ----------------------------------------------------------------
@@ -184,7 +238,7 @@ GenerateBreakdownText = function(pn, minimization_level)
 			end
 		end
 	end
-	
+
 	-- Add any trailing segments we haven't accounted for yet.
 	if segment_sum ~= 0 then
 		if minimization_level == 2 then
