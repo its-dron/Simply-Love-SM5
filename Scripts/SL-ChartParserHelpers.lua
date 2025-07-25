@@ -14,7 +14,7 @@
 -- Get the start/end of each stream and break sequence in our table of measures
 -- TODO(teejusb): Make this smarter as we can probably automatically figure
 -- out a good value for notesThreshold from the chart information.
-GetStreamSequences = function(notesPerMeasure, notesThreshold)
+GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 	local streamMeasures = {}
 	for i,n in ipairs(notesPerMeasure) do
 		if n >= notesThreshold then
@@ -90,7 +90,17 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold)
 		end
 	end
 
-	-- Split breaks into sequences of empty and non-empty breaks
+	-- Check if we should split breaks into sequences of empty and non-empty breaks
+	-- If no player number is provided, use the master player
+	pn = pn or (GAMESTATE:GetMasterPlayerNumber() and ToEnumShortString(GAMESTATE:GetMasterPlayerNumber()) or "P1")
+	local highlightEmptyBreaks = SL[pn].ActiveModifiers.HighlightEmptyBreaks
+
+	-- If HighlightEmptyBreaks is disabled, just return the streamSequences as is
+	if not highlightEmptyBreaks then
+		return streamSequences
+	end
+
+	-- Otherwise, split breaks into sequences of empty and non-empty breaks
 	local finalSequences = {}
 	for i, segment in ipairs(streamSequences) do
 		if not segment.isBreak then
@@ -163,7 +173,7 @@ GenerateBreakdownText = function(pn, minimization_level)
 	if #SL[pn].Streams.NotesPerMeasure == 0 then return 'Not available!' end
 
 	-- Assume 16ths for the breakdown text
-	local segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16)
+	local segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16, pn)
 	local text_segments = {}
 
 	-- The following is used for level 2 and 3 minimization levels.
@@ -263,7 +273,7 @@ GetTotalStreamAndBreakMeasures = function(pn)
 	local totalStream, totalBreak = 0, 0
 
 	-- Assume 16ths for the breakdown text
-	local segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16)
+	local segments = GetStreamSequences(SL[pn].Streams.NotesPerMeasure, 16, pn)
 	for i, segment in ipairs(segments) do
 		local segment_size = segment.streamEnd - segment.streamStart
 		if segment.isBreak then
