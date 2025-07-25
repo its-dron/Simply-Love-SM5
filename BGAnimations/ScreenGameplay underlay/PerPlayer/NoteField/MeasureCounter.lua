@@ -139,11 +139,21 @@ local Update = function(self, delta)
 
 			-- rest count
 			elseif streams.Measures[streamIndex + i - 1].isBreak then
-				-- Make rest lookaheads be lighter than active rests.
-				if not isLookAhead then
-					bmt[adjustedIndex]:diffuse(0.5, 0.5, 0.5 ,1)
+				-- Check if this is an empty break (no notes at all)
+				if streams.Measures[streamIndex + i - 1].isEmpty then
+					-- Empty breaks should be green
+					if not isLookAhead then
+						bmt[adjustedIndex]:diffuse(0.2, 0.9, 0.2, 1) -- Bright green for active empty breaks
+					else
+						bmt[adjustedIndex]:diffuse(0.1, 0.7, 0.1, 1) -- Darker green for lookahead empty breaks
+					end
 				else
-					bmt[adjustedIndex]:diffuse(0.4, 0.4, 0.4 ,1)
+					-- Non-empty breaks remain gray as before
+					if not isLookAhead then
+						bmt[adjustedIndex]:diffuse(0.5, 0.5, 0.5, 1)
+					else
+						bmt[adjustedIndex]:diffuse(0.4, 0.4, 0.4, 1)
+					end
 				end
 
 			-- stream count
