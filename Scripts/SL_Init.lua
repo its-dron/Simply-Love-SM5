@@ -33,6 +33,7 @@ local PlayerDefaults = {
 				HighlightRestBreaks = true,
 				ShowRestBreakCountdown = false,
 				RestBreakThreshold = 2,
+				NotesPerMeasureThreshold = 0,
 				MeasureLines = "Off",
 				DataVisualizations = "None",
 				StepStatsExtra = "None",
