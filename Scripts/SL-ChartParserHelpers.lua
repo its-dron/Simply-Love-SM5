@@ -33,8 +33,14 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 	local counter = 1
 	local streamEnd = nil
 
-	-- Helper function to check if a break is empty (no notes at all)
-	local IsBreakEmpty = function(start, endMeasure)
+	-- Check if we should split breaks into sequences of rest and non-rest breaks
+	-- If no player number is provided, use the master player
+	pn = pn or (GAMESTATE:GetMasterPlayerNumber() and ToEnumShortString(GAMESTATE:GetMasterPlayerNumber()) or "P1")
+	local highlightRestBreaks = SL[pn].ActiveModifiers.HighlightRestBreaks
+	local restBreakThreshold = SL[pn].ActiveModifiers.RestBreakThreshold or 1
+
+	-- Helper function to check if a break is a "rest break"
+	local IsBreakRest = function(start, endMeasure)
 		for i = start, endMeasure do
 			-- If any measure in this break has notes, it's not empty
 			if notesPerMeasure[i] and notesPerMeasure[i] > 0 then
@@ -51,11 +57,11 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 		local k, curVal = next(streamMeasures) -- first element of a table
 		local breakEnd = curVal - 1
 		if (breakEnd - breakStart >= breakSequenceThreshold) then
-			local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
-			-- Only mark as empty if the break is long enough
-			isEmpty = isEmpty and (breakEnd - breakStart >= emptyBreakThreshold)
+			local isRestBreak = IsBreakRest(breakStart + 1, breakEnd)
+			-- Only mark as a rest break if the break is long enough
+			isRestBreak = isRestBreak and (breakEnd - breakStart >= restBreakThreshold)
 			table.insert(streamSequences,
-				{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
+				{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isRestBreak=isRestBreak})
 		end
 	end
 
@@ -83,29 +89,23 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 			local breakStart = curVal
 			local breakEnd = (nextVal ~= -1) and nextVal - 1 or #notesPerMeasure
 			if (breakEnd - breakStart >= breakSequenceThreshold) then
-				local isEmpty = IsBreakEmpty(breakStart + 1, breakEnd)
-				-- Only mark as empty if the break is long enough
-				isEmpty = isEmpty and (breakEnd - breakStart >= emptyBreakThreshold)
+				local isRestBreak = IsBreakRest(breakStart + 1, breakEnd)
+				-- Only mark as a rest break if the break is long enough
+				isRestBreak = isRestBreak and (breakEnd - breakStart >= restBreakThreshold)
 				table.insert(streamSequences,
-					{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isEmpty=isEmpty})
+					{streamStart=breakStart, streamEnd=breakEnd, isBreak=true, isRestBreak=isRestBreak})
 			end
 			counter = 1
 			streamEnd = nil
 		end
 	end
 
-	-- Check if we should split breaks into sequences of empty and non-empty breaks
-	-- If no player number is provided, use the master player
-	pn = pn or (GAMESTATE:GetMasterPlayerNumber() and ToEnumShortString(GAMESTATE:GetMasterPlayerNumber()) or "P1")
-	local highlightEmptyBreaks = SL[pn].ActiveModifiers.HighlightEmptyBreaks
-	local emptyBreakThreshold = SL[pn].ActiveModifiers.EmptyBreakThreshold or 1
-
-	-- If HighlightEmptyBreaks is disabled, just return the streamSequences as is
-	if not highlightEmptyBreaks then
+	-- If HighlightRestBreaks is disabled, just return the streamSequences as is
+	if not highlightRestBreaks then
 		return streamSequences
 	end
 
-	-- Otherwise, split breaks into sequences of empty and non-empty breaks
+	-- Otherwise, split breaks into sequences of rest and non-rest breaks
 	local finalSequences = {}
 	for i, segment in ipairs(streamSequences) do
 		if not segment.isBreak then
@@ -114,37 +114,37 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 		else
 			-- For break segments, we need to check each measure and split if needed
 			local currentStart = segment.streamStart
-			local currentIsEmpty = IsBreakEmpty(currentStart + 1, currentStart + 1)
+			local currentIsRest = IsBreakRest(currentStart + 1, currentStart + 1)
 
 			for m = segment.streamStart + 1, segment.streamEnd do
-				local measureIsEmpty = IsBreakEmpty(m, m)
+				local measureIsRest = IsBreakRest(m, m)
 
-				-- If we've found a transition between empty and non-empty, split the segment
-				if measureIsEmpty ~= currentIsEmpty then
+				-- If we've found a transition between rest and non-rest, split the segment
+				if measureIsRest ~= currentIsRest then
 					-- Add the completed segment
 					local segmentSize = m - 1 - currentStart
-					local isEmptySegment = currentIsEmpty and (segmentSize >= emptyBreakThreshold)
+					local isRestSegment = currentIsRest and (segmentSize >= restBreakThreshold)
 					table.insert(finalSequences, {
 						streamStart = currentStart,
 						streamEnd = m - 1,
 						isBreak = true,
-						isEmpty = isEmptySegment
+						isRestBreak = isRestSegment
 					})
 
 					-- Start a new segment
 					currentStart = m - 1
-					currentIsEmpty = measureIsEmpty
+					currentIsRest = measureIsRest
 				end
 			end
 
 			-- Add the final segment
 			local segmentSize = segment.streamEnd - currentStart
-			local isEmptySegment = currentIsEmpty and (segmentSize >= emptyBreakThreshold)
+			local isRestSegment = currentIsRest and (segmentSize >= restBreakThreshold)
 			table.insert(finalSequences, {
 				streamStart = currentStart,
 				streamEnd = segment.streamEnd,
 				isBreak = true,
-				isEmpty = isEmptySegment
+				isRestBreak = isRestSegment
 			})
 		end
 	end

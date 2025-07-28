@@ -21,40 +21,40 @@ local lookAhead = mods.HideLookahead and 0 or 3
 -- If you want to see more than 2 counts in advance, change the 2 to a larger value.
 -- Making the value very large will likely impact fps. -quietly
 
--- Add a BitmapText actor for the "measures until empty break" counter
-local emptyBreakCounter = nil
+-- Add a BitmapText actor for the "measures until rest break" counter
+local restBreakCounter = nil
 
--- Function to find the next empty break and return the number of measures until it
-local GetMeasuresUntilNextEmptyBreak = function(currMeasure, Measures, currentStreamIndex)
+-- Function to find the next rest break and return the number of measures until it
+local GetMeasuresUntilNextRestBreak = function(currMeasure, Measures, currentStreamIndex)
     -- Start from the current stream index
     local idx = currentStreamIndex
-    local measuresUntilEmptyBreak = 0
+    local measuresUntilRestBreak = 0
 
-    -- If we're currently in an empty break, return 0
-    if Measures[idx] and Measures[idx].isBreak and Measures[idx].isEmpty then
+    -- If we're currently in a rest break, return 0
+    if Measures[idx] and Measures[idx].isBreak and Measures[idx].isRestBreak then
         return 0
     end
 
     -- Calculate how many measures remain in the current segment
     if Measures[idx] then
         local segmentEnd = Measures[idx].streamEnd
-        measuresUntilEmptyBreak = segmentEnd - currMeasure
+        measuresUntilRestBreak = segmentEnd - currMeasure
     end
 
-    -- Look ahead through future segments until we find an empty break
+    -- Look ahead through future segments until we find a rest break
     idx = idx + 1
     while idx <= #Measures do
-        if Measures[idx].isBreak and Measures[idx].isEmpty then
-            -- Found an empty break
-            return math.ceil(measuresUntilEmptyBreak)
+        if Measures[idx].isBreak and Measures[idx].isRestBreak then
+            -- Found a rest break
+            return math.ceil(measuresUntilRestBreak)
         else
             -- Add the length of this segment to our counter
-            measuresUntilEmptyBreak = measuresUntilEmptyBreak + (Measures[idx].streamEnd - Measures[idx].streamStart)
+            measuresUntilRestBreak = measuresUntilRestBreak + (Measures[idx].streamEnd - Measures[idx].streamStart)
         end
         idx = idx + 1
     end
 
-    -- If we get here, there are no more empty breaks in the song
+    -- If we get here, there are no more rest breaks in the song
     return -1
 end
 
@@ -154,16 +154,16 @@ local Update = function(self, delta)
 			streamIndex = streamIndex + 1
 		end
 
-		-- Update the "measures until empty break" counter if it exists
-		if emptyBreakCounter then
-			local measuresUntilEmptyBreak = GetMeasuresUntilNextEmptyBreak(currMeasure, streams.Measures, streamIndex)
-			if measuresUntilEmptyBreak > 0 then
-				-- Only show the counter if we're not currently in an empty break
-				emptyBreakCounter:settext(measuresUntilEmptyBreak)
-				emptyBreakCounter:diffuse(1, 1, 0, 1) -- Yellow color
+		-- Update the "measures until rest break" counter if it exists
+		if restBreakCounter then
+			local measuresUntilRestBreak = GetMeasuresUntilNextRestBreak(currMeasure, streams.Measures, streamIndex)
+			if measuresUntilRestBreak > 0 then
+				-- Only show the counter if we're not currently in a rest break
+				restBreakCounter:settext(measuresUntilRestBreak)
+				restBreakCounter:diffuse(1, 1, 0, 1) -- Yellow color
 			else
-				-- If we're in an empty break or there are no more empty breaks, hide the counter
-				emptyBreakCounter:settext("")
+				-- If we're in a rest break or there are no more rest breaks, hide the counter
+				restBreakCounter:settext("")
 			end
 		end
 
@@ -181,16 +181,16 @@ local Update = function(self, delta)
 
 			-- rest count
 			elseif streams.Measures[streamIndex + i - 1].isBreak then
-				-- Check if this is an empty break (no notes at all)
-				if streams.Measures[streamIndex + i - 1].isEmpty then
-					-- Empty breaks should be green
+				-- Check if this is a rest break (few or no notes)
+				if streams.Measures[streamIndex + i - 1].isRestBreak then
+					-- Rest breaks should be green
 					if not isLookAhead then
-						bmt[adjustedIndex]:diffuse(0.2, 0.9, 0.2, 1) -- Bright green for active empty breaks
+						bmt[adjustedIndex]:diffuse(0.2, 0.9, 0.2, 1) -- Bright green for active rest breaks
 					else
-						bmt[adjustedIndex]:diffuse(0.1, 0.7, 0.1, 1) -- Darker green for lookahead empty breaks
+						bmt[adjustedIndex]:diffuse(0.1, 0.7, 0.1, 1) -- Darker green for lookahead rest breaks
 					end
 				else
-					-- Non-empty breaks remain gray as before
+					-- Non-rest breaks remain gray as before
 					if not isLookAhead then
 						bmt[adjustedIndex]:diffuse(0.5, 0.5, 0.5, 1)
 					else
@@ -264,14 +264,14 @@ for i=lookAhead+1,1,-1 do
 	}
 end
 
--- Add the "measures until empty break" counter
+-- Add the "measures until rest break" counter
 af[#af+1] = LoadFont(font)..{
 	InitCommand=function(self)
 		-- Store the reference to the counter
-		emptyBreakCounter = self
+		restBreakCounter = self
 
-		-- Only show the counter if the ShowEmptyBreakCountdown option is enabled
-		if not mods.ShowEmptyBreakCountdown then
+		-- Only show the counter if the ShowRestBreakCountdown option is enabled
+		if not mods.ShowRestBreakCountdown then
 			self:visible(false)
 			return
 		end
