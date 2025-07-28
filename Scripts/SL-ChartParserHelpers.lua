@@ -41,13 +41,16 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 
 	-- Helper function to check if a break is a "rest break"
 	local IsBreakRest = function(start, endMeasure)
+		-- Get the NotesPerMeasureThreshold from the player's ActiveModifiers
+		local notesPerMeasureThreshold = SL[pn].ActiveModifiers.NotesPerMeasureThreshold or 0
+
 		for i = start, endMeasure do
-			-- If any measure in this break has notes, it's not empty
-			if notesPerMeasure[i] and notesPerMeasure[i] > 0 then
+			-- If any measure in this break has more notes than the threshold, it's not a rest break
+			if notesPerMeasure[i] and notesPerMeasure[i] > notesPerMeasureThreshold then
 				return false
 			end
 		end
-		-- If we get here, all measures had 0 notes
+		-- If we get here, all measures had notes <= threshold
 		return true
 	end
 
