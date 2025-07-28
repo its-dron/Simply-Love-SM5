@@ -632,6 +632,30 @@ local Overrides = {
 			end
 		end
 	},
+	NotesPerMeasureThreshold = {
+		Choices = { "0", "1", "2", "4", "8", "12" },
+		Values = { 0, 1, 2, 4, 8, 12 },
+		LoadSelections = function(self, list, pn)
+			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			local threshold = mods.NotesPerMeasureThreshold or 0
+			for i, val in ipairs(self.Values) do
+				if val == threshold then
+					list[i] = true
+					break
+				end
+			end
+			return list
+		end,
+		SaveSelections = function(self, list, pn)
+			local mods = SL[ToEnumShortString(pn)].ActiveModifiers
+			for i, val in ipairs(self.Values) do
+				if list[i] then
+					mods.NotesPerMeasureThreshold = val
+					break
+				end
+			end
+		end
+	},
 	-------------------------------------------------------------------------
 	MeasureLines = {
 		Values = { "Off", "Measure", "Quarter", "Eighth" },
