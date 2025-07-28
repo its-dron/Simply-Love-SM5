@@ -108,47 +108,60 @@ GetStreamSequences = function(notesPerMeasure, notesThreshold, pn)
 		return streamSequences
 	end
 
-	-- Otherwise, split breaks into sequences of rest and non-rest breaks
+	-- Otherwise, process breaks to handle rest and non-rest sections
 	local finalSequences = {}
 	for i, segment in ipairs(streamSequences) do
 		if not segment.isBreak then
 			-- Stream segments remain unchanged
 			table.insert(finalSequences, segment)
 		else
-			-- For break segments, we need to check each measure and split if needed
-			local currentStart = segment.streamStart
-			local currentIsRest = IsBreakRest(currentStart + 1, currentStart + 1)
-
-			for m = segment.streamStart + 1, segment.streamEnd do
-				local measureIsRest = IsBreakRest(m, m)
-
-				-- If we've found a transition between rest and non-rest, split the segment
-				if measureIsRest ~= currentIsRest then
-					-- Add the completed segment
-					local segmentSize = m - 1 - currentStart
-					local isRestSegment = currentIsRest and (segmentSize >= restBreakThreshold)
-					table.insert(finalSequences, {
-						streamStart = currentStart,
-						streamEnd = m - 1,
-						isBreak = true,
-						isRestBreak = isRestSegment
-					})
-
-					-- Start a new segment
-					currentStart = m - 1
-					currentIsRest = measureIsRest
+			-- For break segments, scan once and create segments as we go
+			local segmentStart = segment.streamStart
+			local inRestSection = false
+			local restStart = nil
+			
+			for m = segment.streamStart + 1, segment.streamEnd + 1 do -- +1 to handle final segment
+				local measureIsRest = (m <= segment.streamEnd) and IsBreakRest(m, m) or false
+				
+				if measureIsRest and not inRestSection then
+					-- Starting a potential rest section
+					restStart = m - 1
+					inRestSection = true
+				elseif not measureIsRest and inRestSection then
+					-- Ending a rest section - check if it's long enough
+					local restLength = m - 1 - restStart
+					if restLength >= restBreakThreshold then
+						-- Add non-rest segment before rest (if any)
+						if restStart > segmentStart then
+							table.insert(finalSequences, {
+								streamStart = segmentStart,
+								streamEnd = restStart,
+								isBreak = true,
+								isRestBreak = false
+							})
+						end
+						-- Add rest segment
+						table.insert(finalSequences, {
+							streamStart = restStart,
+							streamEnd = m - 1,
+							isBreak = true,
+							isRestBreak = true
+						})
+						segmentStart = m - 1
+					end
+					inRestSection = false
 				end
 			end
-
-			-- Add the final segment
-			local segmentSize = segment.streamEnd - currentStart
-			local isRestSegment = currentIsRest and (segmentSize >= restBreakThreshold)
-			table.insert(finalSequences, {
-				streamStart = currentStart,
-				streamEnd = segment.streamEnd,
-				isBreak = true,
-				isRestBreak = isRestSegment
-			})
+			
+			-- Add any remaining segment as non-rest
+			if segmentStart < segment.streamEnd then
+				table.insert(finalSequences, {
+					streamStart = segmentStart,
+					streamEnd = segment.streamEnd,
+					isBreak = true,
+					isRestBreak = false
+				})
+			end
 		end
 	end
 
